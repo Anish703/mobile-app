@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffffff">
+    <title>Device Access PWA</title>
+    <!-- Manifest file for PWA installation -->
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        button {
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #video {
+            max-width: 100%;
+        }
+        #status {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Device Access PWA</h1>
+    
+    <!-- Bluetooth Section -->
+    <section>
+        <h2>Bluetooth</h2>
+        <button id="connectBluetooth">Connect Bluetooth</button>
+        <div id="bluetoothStatus"></div>
+    </section>
+
+    <!-- Camera Section -->
+    <section>
+        <h2>Camera</h2>
+        <button id="startCamera">Start Camera</button>
+        <button id="takePhoto">Take Photo</button>
+        <video id="video" autoplay></video>
+        <canvas id="canvas" style="display: none;"></canvas>
+        <img id="photo" alt="Captured photo">
+    </section>
+
+    <!-- USB Section -->
+    <section>
+        <h2>USB</h2>
+        <button id="connectUSB">Connect USB</button>
+        <div id="usbStatus"></div>
+    </section>
+
+    <script>
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(reg => console.log('Service Worker registered'))
+                    .catch(err => console.log('Service Worker registration failed:', err));
+            });
+        }
+
+        // Bluetooth Functionality
+        document.getElementById('connectBluetooth').addEventListener('click', async () => {
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    optionalServices: ['battery_service']
+                });
+                const server = await device.gatt.connect();
+                document.getElementById('bluetoothStatus').textContent = 
+                    `Connected to ${device.name}`;
+            } catch (error) {
+                document.getElementById('bluetoothStatus').textContent = 
+                    `Bluetooth Error: ${error.message}`;
+            }
+        });
+
+        // Camera Functionality
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const photo = document.getElementById('photo');
+
+        document.getElementById('startCamera').addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: true 
+                });
+                video.srcObject = stream;
+            } catch (error) {
+                console.error('Camera Error:', error);
+            }
+        });
+
+        document.getElementById('takePhoto').addEventListener('click', () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            photo.src = canvas.toDataURL('image/png');
+            photo.style.display = 'block';
+        });
+
+        // USB Functionality
+        document.getElementById('connectUSB').addEventListener('click', async () => {
+            try {
+                const device = await navigator.usb.requestDevice({ filters: [] });
+                await device.open();
+                document.getElementById('usbStatus').textContent = 
+                    `Connected to USB: ${device.productName}`;
+            } catch (error) {
+                document.getElementById('usbStatus').textContent = 
+                    `USB Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>
